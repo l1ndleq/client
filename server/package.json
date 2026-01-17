@@ -1,7 +1,6 @@
 {
   "name": "re-cards-server",
   "private": true,
-  "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
