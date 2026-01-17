@@ -185,6 +185,36 @@ io.on("connection", (socket) => {
       io.to(room.code).emit("match:start", state);
       io.to(room.code).emit("match:sync", state);
     }
+    socket.on("match:endTurn", ({ code } = {}, cb) => {
+  const room = rooms.get(code);
+  if (!room) return cb?.({ ok: false, reason: "not_found" });
+  if (room.status !== "playing" || !room.match) {
+    return cb?.({ ok: false, reason: "not_playing" });
+  }
+
+  const playerIndex = room.players.findIndex((p) => p.socketId === socket.id);
+  if (playerIndex === -1) return cb?.({ ok: false, reason: "not_in_room" });
+
+  // ✅ Только активный игрок может завершить ход
+  if (playerIndex !== room.match.active) {
+    return cb?.({ ok: false, reason: "not_your_turn" });
+  }
+
+  // переключаем активного игрока
+  room.match.active = room.match.active === 0 ? 1 : 0;
+  room.match.turn += 1;
+
+  const state = getPublicRoomState(room);
+  io.to(room.code).emit("match:sync", state);
+
+  cb?.({ ok: true });
+  const endTurn = () => {
+  socket.emit("match:endTurn", { code: state.code }, (res) => {
+    if (!res?.ok) console.log("endTurn failed", res?.reason);
+  });
+};
+
+});
 
     cb?.({ ok: true });
   });
